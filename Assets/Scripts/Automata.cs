@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,18 +9,20 @@ public class Automata: MonoBehaviour {
     [SerializeField] private int gridSize;
     [SerializeField] private PopulationRuleConfig populationRuleConfig;
     [SerializeField] private Point[] initialLiveCells;
-    [SerializeField] private float stateDuration;
+    [SerializeField] private float iterationDuration;
     [SerializeField] private int colorMaxAge = 10;
+    [SerializeField] private GameObject playerObj;
 
     private LineRenderer lr;
     private EvolutionRule rule;
     private Cell[,,] currentGrid;
-    private float currentStateSeconds = 0;
+    private float iterationSeconds = 0;
     private int iteration = 0;
     private List<GameObject> cubes = new List<GameObject>();
+    private bool isPaused = true;
 
 
-    public void loadConfig() {
+    private void loadConfig() {
         if (pattern == PatternsEnum.OSCILLATOR) {
             gridSize = 5;
             populationRuleConfig = new PopulationRuleConfig(5, 5, 5, 6);
@@ -65,14 +68,12 @@ public class Automata: MonoBehaviour {
 
         // Move camera to border
 
-        if (Camera.main != null) {
-            Transform cameraTransform = Camera.main.transform;
-            cameraTransform.position = new Vector3(gridSize * 1.2f, gridSize * 1.2f, gridSize * 1.2f);
-            cameraTransform.LookAt(new Vector3(0, 0, 0));
-        }
+        Player player = playerObj.GetComponent<Player>();
+        player.TeleportTo(new Vector3(gridSize * 1.2f, gridSize * 1.2f, gridSize * 1.2f));
+        player.LookAt(new Vector3(0, 0, 0));
     }
 
-    public void initializeGrid() {
+    private void initializeGrid() {
         Cell[,,] newGrid = new Cell[gridSize, gridSize, gridSize];
 
         for(int i=0; i<initialLiveCells.Length; i++) {
@@ -92,7 +93,9 @@ public class Automata: MonoBehaviour {
         currentGrid = newGrid;
     }
 
-    public void updateGrid() {
+    private void evolveGrid() {
+        print("Evolving grid");
+
         Cell[,,] newGrid = new Cell[gridSize, gridSize, gridSize];
 
         for(int x=0; x<gridSize; x++) {
@@ -106,7 +109,9 @@ public class Automata: MonoBehaviour {
         currentGrid = newGrid;
     }
 
-    public void displayGrid() {
+    private void renderGrid() {
+        print("Rendering grid");
+
         // Remove currently displayed cubes
         cubes.ForEach((cube) => Destroy(cube));
         cubes.Clear();
@@ -135,26 +140,57 @@ public class Automata: MonoBehaviour {
         }
     }
 
-
     void Start() {
         lr = GetComponent<LineRenderer>();
 
         loadConfig();
         initializeGrid();
-        displayGrid();
+        renderGrid();
     }
 
     void Update() {
-        currentStateSeconds += Time.deltaTime;
-
-        if (currentStateSeconds < stateDuration)
+        if (isPaused)
             return;
         
-        updateGrid();
-        displayGrid();
+        iterationSeconds += Time.deltaTime;
+        if (iterationSeconds > iterationDuration) {
+            nextIteration();
+            iterationSeconds = 0;
+        }
+    }
 
-        currentStateSeconds = 0;
+    
+    public void setPaused(bool pause) {
+        isPaused = pause;
+    }
+
+    public void nextIteration() {
+        print("T="+iteration);
+
+        evolveGrid();
+
+        renderGrid();
+
         iteration += 1;
+    }
+
+    public void switchCell(Vector3 pos) {
+        if(!isPaused)
+            return;
+            
+        int x = (int) Math.Round(pos.x);
+        int y = (int) Math.Round(pos.y);
+        int z = (int) Math.Round(pos.z);
+
+        if (x<0 || x>=gridSize || y<0 || y>=gridSize || z<0 || z>=gridSize)
+            return;
+        
+        bool isAlive = currentGrid[x, y, z].isAlive();
+        currentGrid[x, y, z].setAlive(!isAlive);
+
+        print("Switched cell at x="+x+", y="+y+", z="+z+" to: "+isAlive);
+
+        renderGrid();
     }
 
 
