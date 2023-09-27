@@ -1,19 +1,24 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
-[RequireComponent(typeof(LineRenderer))]
 public class Automata: MonoBehaviour {
     
     [SerializeField] private PatternsEnum pattern = PatternsEnum.CUSTOM;
-    [SerializeField] private int gridSize;
-    [SerializeField] private PopulationRuleConfig populationRuleConfig;
+    [SerializeField] private int gridSize = 5;
+    [SerializeField] private PopulationRuleConfig populationRuleConfig = new PopulationRuleConfig(3, 3, 2, 3);
     [SerializeField] private Point[] initialLiveCells;
     [SerializeField] private float iterationDuration;
     [SerializeField] private int colorMaxAge = 10;
-    [SerializeField] private GameObject playerObj;
+    [SerializeField] private GameObject pointObject;
 
-    private LineRenderer lr;
+    [SerializeField] private TMP_Text iterationText;
+    [SerializeField] private TMP_Text pausedText;
+    [SerializeField] private TMP_Text bornRangeText;
+    [SerializeField] private TMP_Text liveRangeText;
+
+
     private EvolutionRule rule;
     private Cell[,,] currentGrid;
     private float iterationSeconds = 0;
@@ -56,21 +61,8 @@ public class Automata: MonoBehaviour {
 
         rule = new PopulationRule(populationRuleConfig.bornMin, populationRuleConfig.bornMax, populationRuleConfig.dieUnder, populationRuleConfig.dieOver);
 
-        // Draw delimiting square
-
-        Vector3[] positions = new Vector3[] {
-            new(0, 0, 0), new(0, 0, gridSize), new(gridSize, 0, gridSize), new(gridSize, 0, 0), new(0, 0, 0),
-        };
-        lr.startWidth = 0.25f;
-        lr.endWidth = 0.25f;
-        lr.positionCount = 5;
-        lr.SetPositions(positions);
-
-        // Move camera to border
-
-        Player player = playerObj.GetComponent<Player>();
-        player.TeleportTo(new Vector3(gridSize * 1.2f, gridSize * 1.2f, gridSize * 1.2f));
-        player.LookAt(new Vector3(0, 0, 0));
+        bornRangeText.text = "Born: "+populationRuleConfig.bornMin+", "+populationRuleConfig.bornMax;
+        liveRangeText.text = "Born: "+populationRuleConfig.dieUnder+", "+populationRuleConfig.dieOver;
     }
 
     private void initializeGrid() {
@@ -141,8 +133,6 @@ public class Automata: MonoBehaviour {
     }
 
     void Start() {
-        lr = GetComponent<LineRenderer>();
-
         loadConfig();
         initializeGrid();
         renderGrid();
@@ -162,6 +152,7 @@ public class Automata: MonoBehaviour {
     
     public void setPaused(bool pause) {
         isPaused = pause;
+        pausedText.text = isPaused ? "Paused" : "Running";
     }
 
     public void nextIteration() {
@@ -172,6 +163,15 @@ public class Automata: MonoBehaviour {
         renderGrid();
 
         iteration += 1;
+        iterationText.text = "Iteration: "+iteration;
+    }
+
+    public void loadPattern(int pattern) {
+        iteration = 0;
+        iterationText.text = "Iteration: "+iteration;
+
+        this.pattern = (PatternsEnum) pattern;
+        Start();
     }
 
     public void switchCell(Vector3 pos) {

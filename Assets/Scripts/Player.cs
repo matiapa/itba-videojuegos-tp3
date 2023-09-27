@@ -1,61 +1,31 @@
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class Player: MonoBehaviour {
 
     [SerializeField] private GameObject automata;
-    [SerializeField] private float moveSpeed = 50f;
-    [SerializeField] private GameObject pointer;
-    [SerializeField] private float buildDistance = 10f;
+    [SerializeField] private GameObject rightController;
 
-    private RaycastHit hit;
+    [SerializeField] private InputActionReference nextStepAction;
+    [SerializeField] private InputActionReference togglePauseAction;
+    [SerializeField] private InputActionReference toggleCellAction;
+
     private bool isPaused = false;
 
-
-    private void HandleMovement() {
-        Vector3 inputDir = new Vector3(0, 0, 0) {
-            z = Input.GetAxis("Vertical"),
-            x = Input.GetAxis("Horizontal")
-        };
-        Vector3 moveDir = transform.forward * inputDir.z + transform.right * inputDir.x;
-        transform.position += moveDir * moveSpeed * Time.deltaTime;
-    }
-
-    public void TeleportTo(Vector3 location) {
-        transform.position = location;
-    }
-
-    public void LookAt(Vector3 direction) {
-        // Transform cameraTransform = Camera.main.transform;
-        transform.LookAt(direction);
-    }
-    
-    private void UpdatePointerPosition() {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out hit, 20)) {
-            pointer.transform.position = hit.transform.position;
-        } else {
-            pointer.transform.position = ray.origin + ray.direction * buildDistance;
-        }
-    }
-    
-    private void Update() {
-        HandleMovement();
-
-        UpdatePointerPosition();
-
-        if (Input.GetKeyUp(KeyCode.Space)) {
+    void Update() {
+        if (togglePauseAction.action.WasPressedThisFrame()) {
             isPaused = !isPaused;
             automata.GetComponent<Automata>().setPaused(isPaused);
         }
 
-        if (Input.GetKeyUp(KeyCode.N)) {
+        if (nextStepAction.action.WasPressedThisFrame()) {
             automata.GetComponent<Automata>().nextIteration();
         }
 
-        if (Input.GetMouseButtonUp(0)) {
-            UpdatePointerPosition();
-            automata.GetComponent<Automata>().switchCell(pointer.transform.position);
+        if (toggleCellAction.action.WasPressedThisFrame()) {
+            automata.GetComponent<Automata>().switchCell(rightController.transform.position);
         }
     }
 
